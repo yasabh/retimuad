@@ -3,9 +3,9 @@ services:
   zookeeper:
     image: bitnami/zookeeper:latest
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"  # For development/testing
-      ZOO_CLIENT_PORT: 2181        
-      ZOO_TICK_TIME: 2000          
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOO_CLIENT_PORT: 2181
+      ZOO_TICK_TIME: 2000
     ports:
       - "2181:2181"
     networks:
@@ -108,6 +108,17 @@ services:
     networks:
       - kafka_network
 
+  # Kafka Topic Creation Service
+  kafka-create-topics:
+    image: bitnami/kafka:latest
+    depends_on:
+      - kafka
+    volumes:
+      - ./configs/create_kafka_topics.sh:/create_kafka_topics.sh
+    entrypoint: ["bash", "/create_kafka_topics.sh"]
+    networks:
+      - kafka_network
+
   # Pretrained ML Model
   # ml-model:
   #   build:
@@ -118,19 +129,6 @@ services:
   #     - ./ml_model:/app
   #   networks:
   #     - kafka_network
-
-  # Kafka Topic Creation Service
-  kafka-create-topics:
-    image: bitnami/kafka:latest
-    depends_on:
-      - kafka
-    environment:
-      KAFKA_BROKER: "kafka:9092"
-    volumes:
-      - ./configs/create_kafka_topics.sh:/create_kafka_topics.sh
-    entrypoint: ["sh", "-c", "/create_kafka_topics.sh && /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list"]
-    networks:
-      - kafka_network
 
 networks:
   kafka_network:
