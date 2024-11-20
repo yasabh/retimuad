@@ -4,8 +4,8 @@ services:
     image: bitnami/zookeeper:latest
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"  # For development/testing
-      ZOO_CLIENT_PORT: 2181        # Default port for client connections
-      ZOO_TICK_TIME: 2000          # Default heartbeat interval (in ms)
+      ZOO_CLIENT_PORT: 2181        
+      ZOO_TICK_TIME: 2000          
     ports:
       - "2181:2181"
     networks:
@@ -128,7 +128,7 @@ services:
       KAFKA_BROKER: "kafka:9092"
     volumes:
       - ./configs/create_kafka_topics.sh:/create_kafka_topics.sh
-    entrypoint: ["bash", "/create_kafka_topics.sh"]
+    entrypoint: ["sh", "-c", "/create_kafka_topics.sh && /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list"]
     networks:
       - kafka_network
 
