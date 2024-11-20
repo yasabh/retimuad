@@ -83,7 +83,10 @@ By integrating these technologies, stakeholders can monitor data flows, identify
 
 ## How to Use
 ...
-
+1. located into your folder to git clone https://github.com/UsmanIKHJLS/OS_SM-Project.git
+2. Open your Docker Desktop
+3. in the command promnt where your file located, write docker-compose up (to run all the services in the docker-compose.yaml) 
+4. wait until all the service run then you can start to run other file in the config folder with the name create_kafka_topics.sh (to create 3 topics names: logs, audio, images)
 ---
 
 ## Contributors
