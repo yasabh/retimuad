@@ -3,9 +3,14 @@ import csv
 import json
 import time
 import os
+from tqdm import tqdm
 
 # Kafka configuration
-KAFKA_BROKER = "localhost:9093"  # Adjust if needed
+KAFKA_BROKER = "localhost:9092"  # Adjust if needed to match your Docker setup
+KAFKA_TOPIC = "industry_logs"         # Kafka topic to send the data
+
+# File paths
+DATASET_FILE = "./dataset/filtered/dataset.csv"  # Updated to reflect its purpose
 
 # Initialize Kafka producer
 producer = KafkaProducer(
@@ -13,43 +18,38 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode("utf-8")
 )
 
-# Flag directory to track loaded datasets
-LOADED_DATASET_DIR = "loaded_datasets"
-if not os.path.exists(LOADED_DATASET_DIR):
-    os.makedirs(LOADED_DATASET_DIR)
+def stream_data_to_kafka(file_path, topic):
+    """
+    Reads a CSV file and streams its rows to a Kafka topic.
 
-# Load dataset and send each row as a message
-def load_csv_to_kafka(file_path, topic):
-    # Check if the dataset for this topic was already loaded
-    loaded_flag_path = os.path.join(LOADED_DATASET_DIR, f"{topic}.loaded")
-    if os.path.exists(loaded_flag_path):
-        print(f"Dataset for topic '{topic}' already loaded. Skipping...")
-        return
+    Args:
+        file_path (str): Path to the CSV file.
+        topic (str): Kafka topic name.
+    """
+    print(f"Streaming data from {file_path} to Kafka topic '{topic}'...")
 
-    with open(file_path, "r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            producer.send(topic, value=row)
-            print(f"Sent to {topic}: {row}")
-            time.sleep(1)  # Optional: add a delay to simulate real-time streaming
+    try:
+        with open(file_path, "r") as file:
+            reader = csv.DictReader(file)
+            total_rows = sum(1 for _ in open(file_path, "r")) - 1  # Total rows excluding header
+            file.seek(0)  # Reset file pointer after counting lines
+            next(reader)  # Skip header row
 
-    # Mark dataset as loaded
-    with open(loaded_flag_path, "w") as flag_file:
-        flag_file.write("loaded")
-    
-    print(f"Dataset for topic '{topic}' loaded successfully.")
-
-    # Flush and close the producer
-    producer.flush()
-    producer.close()
+            # Stream each row with a progress bar
+            for row in tqdm(reader, total=total_rows, desc="Streaming rows", unit="row"):
+                # Send each row as a Kafka message
+                producer.send(topic, value=row)
+                time.sleep(0.01)  # Simulate real-time streaming (adjust as needed)
+    except Exception as e:
+        print(f"Error while streaming data: {e}")
+    finally:
+        producer.flush()
+        print("Data streaming completed.")
 
 if __name__ == "__main__":
-    # Load data for each topic and its corresponding dataset
-    topics_datasets = {
-        "images": "path/to/images_dataset.csv",
-        "logs": "path/to/logs_dataset.csv",
-        "audio": "path/to/audio_dataset.csv"
-    }
-    
-    for topic, file_path in topics_datasets.items():
-        load_csv_to_kafka(file_path, topic)
+    # Ensure the dataset file exists
+    if not os.path.exists(DATASET_FILE):
+        print(f"Dataset file not found: {DATASET_FILE}")
+    else:
+        # Stream data from the dataset file to Kafka
+        stream_data_to_kafka(DATASET_FILE, KAFKA_TOPIC)

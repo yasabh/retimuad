@@ -3,9 +3,7 @@ services:
   zookeeper:
     image: bitnami/zookeeper:latest
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-      ZOO_CLIENT_PORT: 2181
-      ZOO_TICK_TIME: 2000
+      ALLOW_ANONYMOUS_LOGIN: 1
     ports:
       - "2181:2181"
     networks:
@@ -13,86 +11,34 @@ services:
 
   # Kafka for Real-Time Data Streaming
   kafka:
-    image: bitnami/kafka:latest
+    image: bitnami/kafka:2.8.1
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      ALLOW_PLAINTEXT_LISTENER: "yes"
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      ALLOW_PLAINTEXT_LISTENER: 1
+      KAFKA_LISTENERS: INSIDE_DOCKER://:9093,OUTSIDE_DOCKER://:9092
+      KAFKA_ADVERTISED_LISTENERS: INSIDE_DOCKER://kafka:9093,OUTSIDE_DOCKER://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE_DOCKER:PLAINTEXT,OUTSIDE_DOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE_DOCKER
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
-      - "9092:9092"
+      - "9092:9092"  # Expose external listener
     depends_on:
       - zookeeper
     networks:
       - kafka_network
 
-
+  # Kafka Manager for Web UI
   kafka-manager:
-    image: hlebalbau/kafka-manager:latest
+    image: hlebalbau/kafka-manager:stable
     environment:
-      ZK_HOSTS: "zookeeper:2181"  
-      APPLICATION_SECRET: "random-secret-key"  
+      ZK_HOSTS: "zookeeper:2181"
+      APPLICATION_SECRET: "random-secret"
     ports:
-      - "9000:9000" 
+      - "9000:9000"
     depends_on:
       - zookeeper
       - kafka
-    networks:
-      - kafka_network
-
-  # Spark for Stream and Batch Processing
-  spark:
-    image: bitnami/spark:3.3.0
-    environment:
-      SPARK_MODE: master
-      SPARK_RPC_AUTHENTICATION_ENABLED: "false"
-      SPARK_RPC_ENCRYPTION_ENABLED: "false"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "false"
-      SPARK_SSL_ENABLED: "false"
-    ports:
-      - "8080:8080"
-    networks:
-      - kafka_network
-
-  # Elasticsearch for Log Data Storage
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.7.0
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    networks:
-      - kafka_network
-
-  # Logstash for Log Data Ingestion
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.7.0
-    depends_on:
-      - elasticsearch
-    ports:
-      - "5044:5044"
-    volumes:
-      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-    networks:
-      - kafka_network
-
-  # InfluxDB for Data Storage
-  influxdb:
-    image: influxdb:2.0
-    ports:
-      - "8086:8086"
-    environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword
-      DOCKER_INFLUXDB_INIT_ORG: example-org
-      DOCKER_INFLUXDB_INIT_BUCKET: example-bucket
-    volumes:
-      - influxdb_data:/var/lib/influxdb2
     networks:
       - kafka_network
 
@@ -104,7 +50,25 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
-      - influxdb
+      - zookeeper
+      - kafka
+    networks:
+      - kafka_network
+
+  influxdb:
+    image: influxdb:2.0
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_ORG: example-org
+      DOCKER_INFLUXDB_INIT_BUCKET: industry_data
+      DOCKER_INFLUXDB_INIT_RETENTION: 30d
+    depends_on:
+      - kafka
+      - zookeeper
     networks:
       - kafka_network
 
@@ -119,20 +83,6 @@ services:
     networks:
       - kafka_network
 
-  # Pretrained ML Model
-  # ml-model:
-  #   build:
-  #     context: ./ml_model
-  #   environment:
-  #     MODEL_CONFIG_PATH: /app/config.yaml
-  #   volumes:
-  #     - ./ml_model:/app
-  #   networks:
-  #     - kafka_network
-
 networks:
   kafka_network:
     driver: bridge
-
-volumes:
-  influxdb_data:
