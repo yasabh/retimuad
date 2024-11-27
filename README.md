@@ -1,10 +1,8 @@
-# OS_SM-Project
+# OS_SM-Project: Real-Time Multimodal Anomaly Detection for Critical Infrastructures (RETIMU-AD)
 Open Source Technologies for Data Science &amp; Stream Mining  Project
 
-# Real-Time Multimodal Anomaly Detection for Critical Infrastructures (RETIMU-AD)
-
-## Project Overview
-The **Real-Time Multimodal Anomaly Detection for Critical Infrastructures (RETIMU-AD)** project aims to enhance the security and resilience of critical infrastructure by detecting unusual or suspicious events in real time. By analyzing diverse data sources—such as images, logs, and audio—RETIMU-AD provides a comprehensive view of potential threats. 
+## Overview
+The RETIMU-AD project aims to enhance the security and resilience of critical infrastructure by detecting unusual or suspicious events in real time. By analyzing diverse data sources—such as images, logs, and audio—RETIMU-AD provides a comprehensive view of potential threats. 
 
 ### Key Features:
 - **Multimodal Detection**: Combines multiple data types to address limitations of single-modality systems.
@@ -13,7 +11,7 @@ The **Real-Time Multimodal Anomaly Detection for Critical Infrastructures (RETIM
 
 ---
 
-## Project Objective
+## Objective
 RETIMU-AD's primary objective is to fill the gap in real-time multimodal anomaly detection systems for critical infrastructures. The system employs:
 - **Kafka** for data streaming.
 - **Apache Spark** for real-time processing.
@@ -83,11 +81,20 @@ By integrating these technologies, stakeholders can monitor data flows, identify
 
 ## How to Use
 ...
-1. located into your folder to git clone https://github.com/UsmanIKHJLS/OS_SM-Project.git
-2. Open your Docker Desktop
-3. in the command promnt where your file located, write docker-compose up (to run all the services in the docker-compose.yaml) 
-4. wait until all the service run then you can start to run other file in the config folder with the name create_kafka_topics.sh (to create 3 topics names: logs, audio, images)
----
+Clone the Repository and build the application:
+```shell
+git clone https://github.com/UsmanIKHJLS/OS_SM-Project.git && cd OS_SM-Project
+docker compose up
+```
+2. Update the config inside [kafka_producer.py](spark-scripts/kafka_producer.py). Then run,
+```shell
+python3 kafka_producer.py
+```
+3. Update the config inside [kafka_influxdb_consumer.py](spark-scripts/kafka_influxdb_consumer.py). Fist, open http://localhost:8086/. Then run,
+```shell
+python3 kafka_influxdb_consumer.py
+```
+4. 
 
 ## Contributors
 - **Team ... **

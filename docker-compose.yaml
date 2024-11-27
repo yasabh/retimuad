@@ -3,7 +3,7 @@ services:
   zookeeper:
     image: bitnami/zookeeper:latest
     environment:
-      ALLOW_ANONYMOUS_LOGIN: 1
+      ALLOW_ANONYMOUS_LOGIN: ${ZOOKEEPER_ANONYMOUS_LOGIN}
     ports:
       - "2181:2181"
     networks:
@@ -13,16 +13,16 @@ services:
   kafka:
     image: bitnami/kafka:2.8.1
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      ALLOW_PLAINTEXT_LISTENER: 1
-      KAFKA_LISTENERS: INSIDE_DOCKER://:9093,OUTSIDE_DOCKER://:9092
-      KAFKA_ADVERTISED_LISTENERS: INSIDE_DOCKER://kafka:9093,OUTSIDE_DOCKER://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE_DOCKER:PLAINTEXT,OUTSIDE_DOCKER:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE_DOCKER
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID}
+      KAFKA_ZOOKEEPER_CONNECT: ${KAFKA_ZOOKEEPER_CONNECT}
+      ALLOW_PLAINTEXT_LISTENER: ${KAFKA_ALLOW_PLAINTEXT_LISTENER}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+      KAFKA_INTER_BROKER_LISTENER_NAME: ${KAFKA_INTER_BROKER_LISTENER_NAME}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE}
     ports:
-      - "9092:9092"  # Expose external listener
+      - "9092:9092"
     depends_on:
       - zookeeper
     networks:
@@ -32,8 +32,8 @@ services:
   kafka-manager:
     image: hlebalbau/kafka-manager:stable
     environment:
-      ZK_HOSTS: "zookeeper:2181"
-      APPLICATION_SECRET: "random-secret"
+      ZK_HOSTS: ${KAFKA_ZOOKEEPER_CONNECT}
+      APPLICATION_SECRET: ${KAFKA_APPLICATION_SECRET}
     ports:
       - "9000:9000"
     depends_on:
@@ -48,7 +48,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
     depends_on:
       - zookeeper
       - kafka
@@ -60,12 +60,12 @@ services:
     ports:
       - "8086:8086"
     environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: password
-      DOCKER_INFLUXDB_INIT_ORG: example-org
-      DOCKER_INFLUXDB_INIT_BUCKET: industry_data
-      DOCKER_INFLUXDB_INIT_RETENTION: 30d
+      DOCKER_INFLUXDB_INIT_MODE: ${INFLUXDB_MODE}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+      DOCKER_INFLUXDB_INIT_RETENTION: ${INFLUXDB_RETENTION}
     depends_on:
       - kafka
       - zookeeper
