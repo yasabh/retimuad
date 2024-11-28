@@ -1,16 +1,28 @@
 from kafka import KafkaProducer
+import argparse
 import csv
 import json
 import time
 import os
 from tqdm import tqdm
 
-# Kafka configuration
-KAFKA_BROKER = "localhost:9092"  # Adjust if needed to match your Docker setup
-KAFKA_TOPIC = "iomt"         # Kafka topic to send the data
 
-# File paths
-DATASET_FILE = "./Datasets/IoMT_Dataset.csv"  # Updated to reflect its purpose
+# Set default dataset file
+DEFAULT_DATASET_FILE = "./Datasets/IoMT_Dataset.csv"
+DEFAULT_KAFKA_TOPIC = "iomt"
+
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Process IoMT Dataset and Kafka configurations.")
+parser.add_argument("--dataset_file", type=str, default=DEFAULT_DATASET_FILE, help="Path to the dataset file")
+parser.add_argument("--kafka_topic", type=str, default=DEFAULT_KAFKA_TOPIC, help="Kafka topic name")
+
+
+args = parser.parse_args()
+
+# From the arguments or the default value
+KAFKA_BROKER = "localhost:9092"  # Adjust if needed to match your Docker setup
+DATASET_FILE = args.dataset_file
+KAFKA_TOPIC = args.kafka_topic
 
 # Initialize Kafka producer
 producer = KafkaProducer(
