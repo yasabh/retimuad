@@ -5,12 +5,9 @@ import time
 import os
 from tqdm import tqdm
 
-# Kafka configuration
-KAFKA_BROKER = "localhost:9092"  # Adjust if needed to match your Docker setup
-KAFKA_TOPIC = "industry_logs"         # Kafka topic to send the data
-
-# File paths
-DATASET_FILE = "./dataset/filtered/dataset.csv"  # Updated to reflect its purpose
+KAFKA_BROKER = "kafka:9093"
+DATASET_FILE = "/Datasets/" + os.getenv("DATASET_FILE")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
 
 # Initialize Kafka producer
 producer = KafkaProducer(

@@ -86,11 +86,11 @@ Clone the Repository and build the application:
 git clone https://github.com/UsmanIKHJLS/OS_SM-Project.git && cd OS_SM-Project
 docker compose up
 ```
-2. Update the config inside [kafka_producer.py](spark-scripts/kafka_producer.py). Then run,
+2. Update the config inside [kafka_producer.py](scripts/kafka_producer.py). Then run,
 ```shell
 python3 kafka_producer.py
 ```
-3. Update the config inside [kafka_influxdb_consumer.py](spark-scripts/kafka_influxdb_consumer.py). Fist, open http://localhost:8086/. Then run,
+3. Update the config inside [kafka_influxdb_consumer.py](scripts/kafka_influxdb_consumer.py). Fist, open http://localhost:8086/. Then run,
 ```shell
 python3 kafka_influxdb_consumer.py
 ```

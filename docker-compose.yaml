@@ -1,3 +1,7 @@
+networks:
+  kafka_network:
+    driver: bridge
+
 services:
   # Zookeeper for Kafka Coordination
   zookeeper:
@@ -9,20 +13,26 @@ services:
     networks:
       - kafka_network
 
-  # Kafka for Real-Time Data Streaming
+  # Run Kafka and create topic
   kafka:
-    image: bitnami/kafka:2.8.1
+    image: bitnami/kafka:latest
     environment:
-      KAFKA_BROKER_ID: ${KAFKA_BROKER_ID}
-      KAFKA_ZOOKEEPER_CONNECT: ${KAFKA_ZOOKEEPER_CONNECT}
-      ALLOW_PLAINTEXT_LISTENER: ${KAFKA_ALLOW_PLAINTEXT_LISTENER}
-      KAFKA_LISTENERS: ${KAFKA_LISTENERS}
-      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
-      KAFKA_INTER_BROKER_LISTENER_NAME: ${KAFKA_INTER_BROKER_LISTENER_NAME}
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE}
+      KAFKA_BROKER_ID: 1
+      ALLOW_PLAINTEXT_LISTENER: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INSIDE_DOCKER://:9093,OUTSIDE_DOCKER://:9092
+      KAFKA_ADVERTISED_LISTENERS: INSIDE_DOCKER://:9093,OUTSIDE_DOCKER://:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE_DOCKER:PLAINTEXT,OUTSIDE_DOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE_DOCKER
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+    volumes:
+      - ./kafka/create_topics.sh:/app/create_topics.sh
+    working_dir: /app
+    # entrypoint: ["bash", "create_topics.sh"]
     ports:
       - "9092:9092"
+      - "9093:9093"
     depends_on:
       - zookeeper
     networks:
@@ -32,13 +42,54 @@ services:
   kafka-manager:
     image: hlebalbau/kafka-manager:stable
     environment:
-      ZK_HOSTS: ${KAFKA_ZOOKEEPER_CONNECT}
-      APPLICATION_SECRET: ${KAFKA_APPLICATION_SECRET}
+      ZK_HOSTS: zookeeper:2181
+      APPLICATION_SECRET: ${KAFKA_APP_SECRET}
     ports:
       - "9000:9000"
     depends_on:
       - zookeeper
       - kafka
+    networks:
+      - kafka_network
+
+  producer:
+    image: python:3.9-slim
+    container_name: producer
+    depends_on:
+      - kafka
+    volumes:
+      - ./kafka/produce.py:/app/produce.py
+      - ./Datasets:/Datasets
+    working_dir: /app
+    environment:
+      DATASET_FILE: ${DATASET_FILE}
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+    command: >
+      /bin/bash -c "pip install kafka-python tqdm && sleep 60 &&
+      python3 produce.py
+      "
+    networks:
+      - kafka_network
+
+  infuxdb-consumer:
+    image: python:3.9-slim
+    container_name: infuxdb-consumer
+    depends_on:
+      - producer
+      - influxdb
+    volumes:
+      - ./kafka/influxdb_consume.py:/app/influxdb_consume.py
+    working_dir: /app
+    environment:
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      DATASET_FIELDS: ${DATASET_FIELDS}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+    command: >
+      /bin/bash -c "pip install kafka-python influxdb-client tqdm &&
+      python3 influxdb_consume.py
+      "
     networks:
       - kafka_network
 
@@ -71,18 +122,3 @@ services:
       - zookeeper
     networks:
       - kafka_network
-
-  # Kafka Topic Creation Service
-  kafka-create-topics:
-    image: bitnami/kafka:latest
-    depends_on:
-      - kafka
-    volumes:
-      - ./configs/create_kafka_topics.sh:/create_kafka_topics.sh
-    entrypoint: ["bash", "/create_kafka_topics.sh"]
-    networks:
-      - kafka_network
-
-networks:
-  kafka_network:
-    driver: bridge

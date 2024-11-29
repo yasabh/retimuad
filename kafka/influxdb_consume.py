@@ -4,17 +4,20 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import ASYNCHRONOUS
 from tqdm import tqdm
 import json
+import os
 
 # Kafka configuration
-KAFKA_BROKER = "localhost:9092"  # Adjust as per your setup
-KAFKA_TOPIC = "iomt"    # The topic we are streaming from
-CONSUMER_GROUP = "stream_iomt_group"
+KAFKA_BROKER = "kafka:9093"
 
 # InfluxDB configuration
 INFLUXDB_URL = "http://localhost:8086"
-INFLUXDB_TOKEN = "0c8l3cCg8YubsPeSwqEOuDLyXmXukIPqtebNEWTIwRM8Uk_cD9gv7rpMqA8JM6dlGqte9IV7xsjUxITzrte0TQ=="
-INFLUXDB_ORG = "example-org"
-INFLUXDB_BUCKET = "industry_data"
+
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
+DATASET_FIELDS = os.getenv("DATASET_FIELDS", "[]")
+CONSUMER_GROUP = KAFKA_TOPIC + "_influxdb_group"
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
+INFLUXDB_ORG = os.getenv("INFLUXDB_ORG")
+INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET")
 
 # Batch size for InfluxDB writes
 BATCH_SIZE = 500  # Number of rows to write in a single batch
@@ -40,17 +43,14 @@ try:
         data = message.value
 
         # Process the message
-        dir = data.get("Dir", 0)
-        flgs = data.get("Flgs", 0)
-        sport = int(data.get("Sport", 0))
+        fields_data = {}
+        for field, default_value in DATASET_FIELDS:
+            fields_data[field] = data.get(field, default_value)
 
         # Prepare the data point for InfluxDB
-        point = (
-            Point("iomt_data")
-            .field("Dir", dir)
-            .field("Flgs", flgs)
-            .field("Sport", sport)
-        )
+        point = Point(KAFKA_TOPIC)
+        for field, value in fields_data.items():
+            point = point.field(field, value)
 
         # Write data to InfluxDB
         try:

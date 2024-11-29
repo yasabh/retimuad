@@ -1,7 +1,8 @@
 #!/bin/bash
 
-KAFKA_BROKER="kafka:9092"
-TOPICS=("medical-logs" "industry-logs" "test-logs")
+KAFKA_BROKER="kafka:9093"
+# TOPICS=("medical-logs" "industry-logs" "test-logs")
+TOPICS=($KAFKA_TOPIC)
 
 # Create Kafka topics
 echo "Creating Kafka topics..."
