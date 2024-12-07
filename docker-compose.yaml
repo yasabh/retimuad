@@ -26,10 +26,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE_DOCKER
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
       KAFKA_TOPIC: ${KAFKA_TOPIC}
-    volumes:
-      - ./kafka/create_topics.sh:/app/create_topics.sh
     working_dir: /app
-    # entrypoint: ["bash", "create_topics.sh"]
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -71,9 +68,9 @@ services:
     networks:
       - kafka_network
 
-  infuxdb-consumer:
+  influxdb-consumer:
     image: python:3.9-slim
-    container_name: infuxdb-consumer
+    container_name: influxdb-consumer
     depends_on:
       - producer
       - influxdb
