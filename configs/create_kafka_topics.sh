@@ -1,7 +1,15 @@
 #!/bin/bash
 
-KAFKA_BROKER="kafka:9092"
-TOPICS=("medical-logs" "industry-logs" "test-logs")
+KAFKA_BROKER="kafka:9093"
+TOPICS=("medical_logs" "industry_logs" "test_logs")
+
+# Wait for Kafka to be ready
+until /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BROKER --list &>/dev/null; do
+    echo "Waiting for Kafka to be ready..."
+    sleep 5
+done
+echo "Kafka is ready."
+
 
 # Create Kafka topics
 echo "Creating Kafka topics..."
