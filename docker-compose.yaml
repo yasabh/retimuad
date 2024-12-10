@@ -119,3 +119,56 @@ services:
       - zookeeper
     networks:
       - kafka_network
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "7077:7077" # Spark master port
+      - "8080:8080" # Spark Web UI port
+    networks:
+      - kafka_network
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+    depends_on:
+      - spark-master
+    networks:
+      - kafka_network
+
+  spark-stream-mining:
+    image: python:3.9-slim
+    container_name: spark-stream-mining
+    depends_on:
+      - kafka
+      - spark-master
+      - influxdb
+    volumes:
+      - ./spark/stream_mining.py:/app/stream_mining.py
+    working_dir: /app
+    environment:
+      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+      KAFKA_BROKER: kafka:9092
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      SPARK_MASTER_URL: spark://spark-master:7077
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+    command: >
+      /bin/bash -c "apt-get update && apt-get install -y openjdk-11-jdk && 
+      pip install numpy pyspark kafka-python influxdb-client && 
+      python3 stream_mining.py"
+    networks:
+      - kafka_network
