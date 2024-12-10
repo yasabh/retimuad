@@ -28,7 +28,7 @@ df = spark \
     .load()
 
 # Define schema and extract JSON fields
-schema = "SrcBytes INT, DstBytes INT, SrcLoad FLOAT, DstLoad FLOAT, Temp FLOAT, SpO2 INT, Pulse_Rate INT, SYS INT, DIA INT, Heart_rate INT, Label INT"
+schema = "Flgs object,Sport object,SrcBytes INT,DstBytes INT,SrcLoad FLOAT,DstLoad FLOAT,SIntPkt FLOAT,DIntPkt FLOAT,SIntPktAct FLOAT,SrcJitter FLOAT,DstJitter FLOAT,sMaxPktSz INT,dMaxPktSz INT,sMinPktSz INT,Dur FLOAT,TotPkts INT,TotBytes INT,Load FLOAT,Loss INT,pLoss FLOAT,pSrcLoss FLOAT,pDstLoss FLOAT,Rate FLOAT,SrcMac object,Packet_num INT,Temp FLOAT,SpO2 INT,Pulse_Rate INT,SYS INT,DIA INT, Heart_rate INT, Resp_Rate INT, ST FLOAT, Attack Category object, Label INT"
 parsed_df = df.selectExpr("CAST(value AS STRING) as json") \
     .select(from_json(col("json"), schema).alias("data")) \
     .select("data.*")

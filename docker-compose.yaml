@@ -1,174 +1,323 @@
 networks:
+
   kafka_network:
+
     driver: bridge
-
+ 
 services:
+
   # Zookeeper for Kafka Coordination
+
   zookeeper:
-    image: bitnami/zookeeper:latest
+
+    image: bitnami/zookeeper:3.9.3
+
     environment:
+
       ALLOW_ANONYMOUS_LOGIN: ${ZOOKEEPER_ANONYMOUS_LOGIN}
+
     ports:
+
       - "2181:2181"
-    networks:
-      - kafka_network
 
+    networks:
+
+      - kafka_network
+ 
   # Run Kafka and create topic
+
   kafka:
-    image: bitnami/kafka:latest
+
+    image: bitnami/kafka:3.5.1
+
     environment:
+
       KAFKA_BROKER_ID: 1
+
       ALLOW_PLAINTEXT_LISTENER: 1
+
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
       KAFKA_LISTENERS: INSIDE_DOCKER://:9093,OUTSIDE_DOCKER://:9092
+
       KAFKA_ADVERTISED_LISTENERS: INSIDE_DOCKER://:9093,OUTSIDE_DOCKER://:9092
+
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE_DOCKER:PLAINTEXT,OUTSIDE_DOCKER:PLAINTEXT
+
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE_DOCKER
+
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+
       KAFKA_TOPIC: ${KAFKA_TOPIC}
+
     working_dir: /app
+
     ports:
+
       - "9092:9092"
+
       - "9093:9093"
-    depends_on:
-      - zookeeper
-    networks:
-      - kafka_network
 
+    depends_on:
+
+      - zookeeper
+
+    networks:
+
+      - kafka_network
+ 
   # Kafka Manager for Web UI
+
   kafka-manager:
+
     image: hlebalbau/kafka-manager:stable
+
     environment:
+
       ZK_HOSTS: zookeeper:2181
+
       APPLICATION_SECRET: ${KAFKA_APP_SECRET}
+
     ports:
+
       - "9000:9000"
-    depends_on:
-      - zookeeper
-      - kafka
-    networks:
-      - kafka_network
 
+    depends_on:
+
+      - zookeeper
+
+      - kafka
+
+    networks:
+
+      - kafka_network
+ 
   producer:
+
     image: python:3.9-slim
+
     container_name: producer
+
     depends_on:
+
       - kafka
+
     volumes:
+
       - ./kafka/produce.py:/app/produce.py
+
       - ./Datasets:/Datasets
+
     working_dir: /app
+
     environment:
+
       DATASET_FILE: ${DATASET_FILE}
+
       KAFKA_TOPIC: ${KAFKA_TOPIC}
+
     command: >
+
       /bin/bash -c "pip install kafka-python tqdm && sleep 60 &&
+
       python3 produce.py
-      "
-    networks:
-      - kafka_network
 
+      "
+
+    networks:
+
+      - kafka_network
+ 
   influxdb-consumer:
+
     image: python:3.9-slim
+
     container_name: influxdb-consumer
+
     depends_on:
+
       - producer
+
       - influxdb
+
     volumes:
+
       - ./kafka/influxdb_consume.py:/app/influxdb_consume.py
+
     working_dir: /app
+
     environment:
+
       KAFKA_TOPIC: ${KAFKA_TOPIC}
+
       DATASET_FIELDS: ${DATASET_FIELDS}
+
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+
       INFLUXDB_ORG: ${INFLUXDB_ORG}
+
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+
     command: >
+
       /bin/bash -c "pip install kafka-python influxdb-client tqdm &&
+
       python3 influxdb_consume.py
+
       "
-    networks:
-      - kafka_network
 
+    networks:
+
+      - kafka_network
+ 
   # Grafana for Visualization
+
   grafana:
-    image: grafana/grafana:latest
+
+    image: grafana/grafana:9.5.2
+
     ports:
+
       - "3000:3000"
+
     environment:
+
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-    depends_on:
-      - zookeeper
-      - kafka
-    networks:
-      - kafka_network
 
+    depends_on:
+
+      - zookeeper
+
+      - kafka
+
+    networks:
+
+      - kafka_network
+ 
   influxdb:
-    image: influxdb:2.0
+
+    image: influxdb:2.7.0
+
     ports:
+
       - "8086:8086"
+
     environment:
+
       DOCKER_INFLUXDB_INIT_MODE: ${INFLUXDB_MODE}
+
       DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME}
+
       DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+
       DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+
       DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+
       DOCKER_INFLUXDB_INIT_RETENTION: ${INFLUXDB_RETENTION}
+
     depends_on:
+
       - kafka
+
       - zookeeper
-    networks:
-      - kafka_network
 
+    networks:
+
+      - kafka_network
+ 
   spark-master:
-    image: bitnami/spark:latest
+
+    image: bitnami/spark:3.4.1
+
     container_name: spark-master
+
     environment:
+
       - SPARK_MODE=master
+
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
+
       - SPARK_RPC_ENCRYPTION_ENABLED=no
+
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+
       - SPARK_SSL_ENABLED=no
+
     ports:
+
       - "7077:7077" # Spark master port
+
       - "8080:8080" # Spark Web UI port
-    networks:
-      - kafka_network
 
+    networks:
+
+      - kafka_network
+ 
   spark-worker:
-    image: bitnami/spark:latest
-    container_name: spark-worker
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=2G
-      - SPARK_WORKER_CORES=2
-    depends_on:
-      - spark-master
-    networks:
-      - kafka_network
 
-  spark-stream-mining:
-    image: python:3.9-slim
-    container_name: spark-stream-mining
-    depends_on:
-      - kafka
-      - spark-master
-      - influxdb
-    volumes:
-      - ./spark/stream_mining.py:/app/stream_mining.py
-    working_dir: /app
+    image: bitnami/spark:3.4.1
+
+    container_name: spark-worker
+
     environment:
-      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
-      KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: ${KAFKA_TOPIC}
-      SPARK_MASTER_URL: spark://spark-master:7077
-      INFLUXDB_URL: http://influxdb:8086
-      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
-      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
-    command: >
-      /bin/bash -c "apt-get update && apt-get install -y openjdk-11-jdk && 
-      pip install numpy pyspark kafka-python influxdb-client && 
-      python3 stream_mining.py"
+
+      - SPARK_MODE=worker
+
+      - SPARK_MASTER_URL=spark://spark-master:7077
+
+      - SPARK_WORKER_MEMORY=2G
+
+      - SPARK_WORKER_CORES=2
+
+    depends_on:
+
+      - spark-master
+
     networks:
+
+      - kafka_network
+ 
+  spark-stream-mining:
+
+    image: bitnami/spark:3.4.1
+
+    container_name: spark-stream-mining
+
+    depends_on:
+
+      - kafka
+
+      - spark-master
+
+      - influxdb
+
+    volumes:
+
+      - ./spark/stream_mining.py:/app/stream_mining.py
+
+    working_dir: /app
+
+    environment:
+
+      KAFKA_BROKER: kafka:9092
+
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+
+      SPARK_MASTER_URL: spark://spark-master:7077
+
+      INFLUXDB_URL: http://influxdb:8086
+
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+
+    command: >
+
+      /bin/bash -c "pip install numpy pyspark kafka-python influxdb-client &&
+
+      python3 stream_mining.py"
+
+    networks:
+
       - kafka_network
