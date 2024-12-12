@@ -1,3 +1,4 @@
+import os
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.ml.feature import VectorAssembler
@@ -7,11 +8,11 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 # Kafka and InfluxDB configuration
-KAFKA_BROKER = "kafka:9092"
-KAFKA_TOPIC = "iomt"
-INFLUXDB_URL = "http://influxdb:8086"
-INFLUXDB_BUCKET = "IoMT"
-INFLUXDB_TOKEN = "2jNbwAnkoxlXTFQE6chtoRFGjk-xb0r0_gv_WTelEvnM3ohLGR1Ru8vMTCX9032lf1MsRKul5SBq2ZhOWVI-fA=="
+KAFKA_BROKER = os.getenv("KAFKA_BROKER")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
+INFLUXDB_URL = os.getenv("INFLUXDB_URL")
+INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET")
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 
 # Initialize Spark Session
 spark = SparkSession.builder \
