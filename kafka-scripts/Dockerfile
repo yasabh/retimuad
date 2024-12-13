@@ -10,5 +10,5 @@ COPY . .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Set default entrypoint to allow running producer or consumer
+# Default entrypoint to allow running producer or consumer
 ENTRYPOINT ["python"]

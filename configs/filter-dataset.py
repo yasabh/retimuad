@@ -7,7 +7,7 @@ output_folder = "./dataset/filtered"
 os.makedirs(output_folder, exist_ok=True)  # Create output folder if it doesn't exist
 
 # Columns to keep
-columns_to_keep = ["Timestamp", "LIT101", "LIT301", "LIT401", "FIT101", "Normal/Attack"]
+columns_to_keep = ["Timestamp", "FIT101", "LIT101", "MV101", "P101", "Normal/Attack"]
 # columns_to_keep = ["Timestamp", "MV304", "MV101","LIT101", "MV303", "LIT301", "AIT504","Normal/Attack"]
 
 # Function to process a single file

@@ -4,23 +4,21 @@ from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import WriteOptions
 import os
 import json
+from tqdm import tqdm  # For the progress bar
 
 # Kafka configuration
 KAFKA_BROKER = "kafka:9093"  # Adjust as per your setup
-KAFKA_TOPIC = "industry_logs"    # The topic we are streaming from
+KAFKA_TOPIC = "processed_swat_logs"  # The topic we are streaming from
 CONSUMER_GROUP = "stream_processor_group"
 
 # InfluxDB configuration
-# Read config from environment variables
 INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "")
 INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "stream-org")
 INFLUXDB_BUCKET1 = os.getenv("INFLUXDB_BUCKET1", "industry_data")
-# INFLUXDB_BUCKET2 = os.getenv("INFLUXDB_BUCKET2", "default_bucket")
-# INFLUXDB_BUCKET3 = os.getenv("INFLUXDB_BUCKET3", "default_bucket")
 
 # Batch size for InfluxDB writes
-BATCH_SIZE = 200  
+BATCH_SIZE = 200
 
 # Initialize Kafka consumer
 consumer = KafkaConsumer(
@@ -38,40 +36,50 @@ write_api = influx_client.write_api(write_options=WriteOptions(batch_size=BATCH_
 
 print(f"Listening for messages on topic '{KAFKA_TOPIC}'...")
 
+# Batch to hold records
+batch = []
+progress_bar = tqdm(total=0, unit="record", desc="Processed")  # Progress bar
+
 try:
     for message in consumer:
         data = message.value
-
-        # Debug: Print the incoming data
-        print(f"Received message: {data}")
 
         # Ensure the data is a list of dictionaries
         if isinstance(data, list):
             for record in data:
                 if isinstance(record, dict):
-                    lit101 = float(record.get("LIT101", 0))
-                    lit301 = float(record.get("LIT301", 0))
-                    lit401 = float(record.get("LIT401", 0))
                     fit101 = float(record.get("FIT101", 0))
+                    lit101 = float(record.get("LIT101", 0))
+                    ait101 = float(record.get("AIT201", 0))
+                    ait102 = float(record.get("AIT202", 0))
+                    ait103 = float(record.get("AIT203", 0))
                     normal_attack = record.get("Normal/Attack", "Unknown")
 
                     # Prepare the data point for InfluxDB
                     point = (
-                        Point("industry_logs")
-                        .field("LIT101", lit101)
-                        .field("LIT301", lit301)
-                        .field("LIT401", lit401)
+                        Point("processed_swat_logs")
                         .field("FIT101", fit101)
+                        .field("LIT101", lit101)
+                        .field("AIT201", ait101)
+                        .field("AIT202", ait102)
+                        .field("AIT203", ait103)
                         .field("Normal_Attack", normal_attack)
                     )
 
-                    # Write data to InfluxDB
-                    try:
-                        write_api.write(bucket=INFLUXDB_BUCKET1, org=INFLUXDB_ORG, record=point)
-                        print(f"Written to InfluxDB: {record}")
-                    except Exception as e:
-                        print(f"Error writing to InfluxDB: {e}")
-                        continue  # Skip committing if writing fails
+                    # Add the point to the batch
+                    batch.append(point)
+
+                    # If the batch size is reached, write to InfluxDB
+                    if len(batch) >= BATCH_SIZE:
+                        try:
+                            write_api.write(bucket=INFLUXDB_BUCKET1, org=INFLUXDB_ORG, record=batch)
+                            progress_bar.total += len(batch)
+                            progress_bar.update(len(batch))
+                            print(f"Successfully written {len(batch)} records to InfluxDB.")
+                            batch = []  # Clear the batch
+                        except Exception as e:
+                            print(f"Error writing to InfluxDB: {e}")
+                            continue  # Skip committing if writing fails
                 else:
                     print(f"Unexpected record format: {record}")
         else:
@@ -87,5 +95,16 @@ try:
 except KeyboardInterrupt:
     print("Consumer stopped.")
 finally:
+    # Write any remaining records in the batch
+    if batch:
+        try:
+            write_api.write(bucket=INFLUXDB_BUCKET1, org=INFLUXDB_ORG, record=batch)
+            progress_bar.total += len(batch)
+            progress_bar.update(len(batch))
+            print(f"Successfully written remaining {len(batch)} records to InfluxDB.")
+        except Exception as e:
+            print(f"Error writing remaining records to InfluxDB: {e}")
+
     consumer.close()
     influx_client.close()
+    progress_bar.close()
