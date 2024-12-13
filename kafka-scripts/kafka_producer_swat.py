@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 # Kafka configuration
 KAFKA_BROKER = "kafka:9093"  
-KAFKA_TOPIC = "industry_logs"        
+KAFKA_TOPIC = "industry_logs"    
 
 # File paths
 DATASET_FILE = "./dataset/dataset.csv" 
@@ -52,6 +52,11 @@ def stream_data_to_kafka(file_path, topic, batch_size=900):
     finally:
         producer.flush()
         print("Data streaming completed.")
+        
+        # At the end of producer script
+        # Write the flag file to the shared volume
+        open('/app/shared/producer_finished.flag', 'w').close()
+        print("Producer finished, flag file created.")
 
 if __name__ == "__main__":
     # Ensure the dataset file exists

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 KAFKA_BROKER="kafka:9093"
-TOPICS=("medical_logs" "industry_logs" "test_logs")
+TOPICS=("medical_logs" "industry_logs" "test_logs" "processed_swat_logs")
 
 # Wait for Kafka to be ready
 until /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server $KAFKA_BROKER --list &>/dev/null; do
