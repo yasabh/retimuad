@@ -65,26 +65,6 @@ services:
     networks:
       - kafka_network
 
-  consumer:
-    image: python:3.9-slim
-    container_name: consumer
-    depends_on:
-      - producer
-      - influxdb
-    volumes:
-      - ./kafka/consumer.py:/app/consumer.py
-    working_dir: /app
-    environment:
-      KAFKA_TOPIC: ${KAFKA_TOPIC}
-      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
-      INFLUXDB_ORG: ${INFLUXDB_ORG}
-      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
-    command: >
-      /bin/bash -c "pip install kafka-python influxdb-client tqdm &&
-      python3 consumer.py"
-    networks:
-      - kafka_network
-
   grafana:
     image: grafana/grafana:9.5.2
     ports:
@@ -158,6 +138,7 @@ services:
       - ./spark/stream_miner.py:/app/stream_miner.py
     working_dir: /app
     environment:
+      MODEL_PATH: ${MODEL_PATH}
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: ${KAFKA_TOPIC}
       INFLUXDB_URL: http://influxdb:8086

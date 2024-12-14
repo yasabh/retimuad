@@ -16,7 +16,7 @@ INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET")
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 
 # Load Pre-trained Model
-MODEL_PATH = "iomt"
+MODEL_PATH = os.getenv("MODEL_PATH")
 
 # Initialize Spark Session
 spark = SparkSession.builder \
