@@ -1,19 +1,15 @@
 from kafka import KafkaProducer
+from kafka.errors import NoBrokersAvailable 
 import csv
 import json
 import time
 import os
+import time
 from tqdm import tqdm
 
 KAFKA_BROKER = "kafka:9093"
 DATASET_FILE = "/Datasets/" + os.getenv("DATASET_FILE")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
-
-# Initialize Kafka producer
-producer = KafkaProducer(
-    bootstrap_servers=KAFKA_BROKER,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
-)
 
 def stream_data_to_kafka(file_path, topic):
     """
@@ -48,5 +44,18 @@ if __name__ == "__main__":
     if not os.path.exists(DATASET_FILE):
         print(f"Dataset file not found: {DATASET_FILE}")
     else:
-        # Stream data from the dataset file to Kafka
-        stream_data_to_kafka(DATASET_FILE, KAFKA_TOPIC)
+        print(f"No Kafka brokers available at {KAFKA_BROKER} yet")
+
+        while True:
+            try:
+                producer = KafkaProducer(
+                    bootstrap_servers=KAFKA_BROKER,
+                    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+                )
+                print(f"\nOkay, It's started!")
+
+                # Stream data from the dataset file to Kafka
+                stream_data_to_kafka(DATASET_FILE, KAFKA_TOPIC)
+            except NoBrokersAvailable:
+                print(f".", end="")
+                time.sleep(1)

@@ -46,9 +46,9 @@ services:
     networks:
       - kafka_network
 
-  producer:
-    image: python:3.9-slim
-    container_name: producer
+  kafka-producer:
+    image: kafka-producer-py:3.9-slim
+    container_name: kafka-producer
     depends_on:
       - kafka
     volumes:
@@ -59,9 +59,7 @@ services:
       DATASET_FILE: ${DATASET_FILE}
       KAFKA_TOPIC: ${KAFKA_TOPIC}
     command: >
-      /bin/bash -c "pip install kafka-python tqdm &&
-      sleep 5 && echo 'Starting to execute..' &&
-      python3 producer.py"
+      /bin/bash -c "python3 producer.py"
     networks:
       - kafka_network
 
