@@ -13,11 +13,22 @@ KAFKA_BROKER = "kafka:9093"
 INFLUXDB_URL = "http://localhost:8086"
 
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
-DATASET_FIELDS = os.getenv("DATASET_FIELDS", "[]")
 CONSUMER_GROUP = KAFKA_TOPIC + "_influxdb_group"
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 INFLUXDB_ORG = os.getenv("INFLUXDB_ORG")
 INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET")
+DATASET_FIELDS = [
+    ("SrcBytes", 0),          # Integer, from network activity
+    ("DstBytes", 0),          # Integer, from network activity
+    ("SrcLoad", 0.0),         # Float, network load
+    ("DstLoad", 0.0),         # Float, network load
+    ("Temp", 0.0),            # Float, temperature measurement
+    ("SpO2", 0),              # Integer, oxygen saturation level
+    ("Pulse_Rate", 0),        # Integer, pulse rate
+    ("SYS", 0),               # Integer, systolic blood pressure
+    ("DIA", 0),               # Integer, diastolic blood pressure
+    ("Heart_rate", 0)         # Integer, heart rate
+]
 
 # Batch size for InfluxDB writes
 BATCH_SIZE = 500  # Number of rows to write in a single batch

@@ -52,36 +52,36 @@ services:
     depends_on:
       - kafka
     volumes:
-      - ./kafka/produce.py:/app/produce.py
+      - ./kafka/producer.py:/app/producer.py
       - ./Datasets:/Datasets
     working_dir: /app
     environment:
       DATASET_FILE: ${DATASET_FILE}
       KAFKA_TOPIC: ${KAFKA_TOPIC}
     command: >
-      /bin/bash -c "pip install kafka-python tqdm && sleep 60 &&
-      python3 produce.py"
+      /bin/bash -c "pip install kafka-python tqdm &&
+      sleep 30 && echo 'Starting to execute..' &&
+      python3 producer.py"
     networks:
       - kafka_network
 
-  influxdb-consumer:
+  consumer:
     image: python:3.9-slim
-    container_name: influxdb-consumer
+    container_name: consumer
     depends_on:
       - producer
       - influxdb
     volumes:
-      - ./kafka/influxdb_consume.py:/app/influxdb_consume.py
+      - ./kafka/consumer.py:/app/consumer.py
     working_dir: /app
     environment:
       KAFKA_TOPIC: ${KAFKA_TOPIC}
-      DATASET_FIELDS: ${DATASET_FIELDS}
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
       INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
     command: >
       /bin/bash -c "pip install kafka-python influxdb-client tqdm &&
-      python3 influxdb_consume.py"
+      python3 consumer.py"
     networks:
       - kafka_network
 
@@ -117,6 +117,8 @@ services:
   spark-master:
     image: bitnami/spark:3.4.1
     container_name: spark-master
+    volumes:
+      - ./models/iomt:/app/iomt
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
@@ -132,6 +134,8 @@ services:
   spark-worker:
     image: bitnami/spark:3.4.1
     container_name: spark-worker
+    volumes:
+      - ./models/iomt:/app/iomt
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
@@ -141,6 +145,10 @@ services:
       - spark-master
     networks:
       - kafka_network
+    command: >
+      bash -c "
+      pip install influxdb-client &&
+      /opt/bitnami/scripts/spark/entrypoint.sh"
 
   spark-stream-mining:
     image: bitnami/spark:3.4.1
@@ -150,7 +158,8 @@ services:
       - spark-master
       - influxdb
     volumes:
-      - ./spark/stream_mining.py:/app/stream_mining.py
+      - ./models/iomt:/app/iomt
+      - ./spark/stream_miner.py:/app/stream_miner.py
     working_dir: /app
     environment:
       KAFKA_BROKER: kafka:9092
@@ -160,6 +169,7 @@ services:
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
     command: >
       /bin/bash -c "pip install numpy pyspark kafka-python influxdb-client &&
-      python3 stream_mining.py"
+      sleep 30 && echo 'Starting to execute..' &&
+      spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0 stream_miner.py"
     networks:
       - kafka_network
