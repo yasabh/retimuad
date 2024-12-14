@@ -60,7 +60,7 @@ services:
       KAFKA_TOPIC: ${KAFKA_TOPIC}
     command: >
       /bin/bash -c "pip install kafka-python tqdm &&
-      sleep 30 && echo 'Starting to execute..' &&
+      sleep 5 && echo 'Starting to execute..' &&
       python3 producer.py"
     networks:
       - kafka_network
@@ -115,7 +115,7 @@ services:
       - kafka_network
 
   spark-master:
-    image: bitnami/spark:3.4.1
+    image: custom-spark:3.4.1
     container_name: spark-master
     volumes:
       - ./models/iomt:/app/iomt
@@ -132,7 +132,7 @@ services:
       - kafka_network
 
   spark-worker:
-    image: bitnami/spark:3.4.1
+    image: custom-spark:3.4.1
     container_name: spark-worker
     volumes:
       - ./models/iomt:/app/iomt
@@ -145,13 +145,9 @@ services:
       - spark-master
     networks:
       - kafka_network
-    command: >
-      bash -c "
-      pip install influxdb-client &&
-      /opt/bitnami/scripts/spark/entrypoint.sh"
 
   spark-stream-mining:
-    image: bitnami/spark:3.4.1
+    image: custom-spark:3.4.1
     container_name: spark-stream-mining
     depends_on:
       - kafka
@@ -165,11 +161,11 @@ services:
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: ${KAFKA_TOPIC}
       INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_ORG: ${INFLUXDB_ORG}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
     command: >
-      /bin/bash -c "pip install numpy pyspark kafka-python influxdb-client &&
-      sleep 30 && echo 'Starting to execute..' &&
+      /bin/bash -c "sleep 10 && echo 'Starting to execute..' &&
       spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0 stream_miner.py"
     networks:
       - kafka_network

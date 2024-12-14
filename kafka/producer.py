@@ -36,7 +36,7 @@ def stream_data_to_kafka(file_path, topic):
             for row in tqdm(reader, total=total_rows, desc="Streaming rows", unit="row"):
                 # Send each row as a Kafka message
                 producer.send(topic, value=row)
-                time.sleep(0.01)  # Simulate real-time streaming (adjust as needed)
+                time.sleep(1)  # Simulate real-time streaming (adjust as needed)
     except Exception as e:
         print(f"Error while streaming data: {e}")
     finally:
