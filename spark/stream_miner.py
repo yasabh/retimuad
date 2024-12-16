@@ -86,15 +86,16 @@ feature_df = assembler.transform(casted_df)
 # Define prediction function
 def predict_stream(batch_df, batch_id):
     if batch_df.count() > 0:
-        for row in batch_df.collect():
-            print("batch_df", row)
+        # for row in batch_df.collect():
+        #     print("batch_df", row)
+
         # Extract features and labels as NumPy arrays
         features = np.array(batch_df.select("features").rdd.map(lambda row: row[0]).collect())
         labels = np.array(batch_df.select("Label").rdd.flatMap(lambda x: x).collect())
 
         # Perform prediction
         predicted_classes = model(features)['output_0'].numpy().argmax(axis=1)  # For multi-class predictions
-        print("predicted_classes output:", predicted_classes)
+        # print("predicted_classes output:", predicted_classes)
 
         # Create a DataFrame for predictions
         predictions_df = spark.createDataFrame(predicted_classes.tolist(), IntegerType()).toDF("Prediction")
@@ -103,7 +104,7 @@ def predict_stream(batch_df, batch_id):
         batch_with_predictions = batch_df.withColumn("id", F.monotonically_increasing_id()).join(
             predictions_df.withColumn("id", F.monotonically_increasing_id()), on="id"
         ).drop("id")
-        print("batch_with_predictions output:", batch_with_predictions)
+        # print("batch_with_predictions output:", batch_with_predictions)
 
         # Write predictions to InfluxDB
         batch_with_predictions.foreach(write_to_influxdb)

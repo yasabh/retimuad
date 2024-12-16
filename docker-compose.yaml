@@ -25,9 +25,9 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
       KAFKA_TOPIC: ${KAFKA_TOPIC}
     working_dir: /app
-    command: >
-      /bin/bash -c "sleep 10 && echo 'Starting to grab iomt topic..' &&
-      kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic iomt --from-beginning"
+    # command: >
+    #   /bin/bash -c "echo 'Starting to grab iomt topic..' &&
+    #   kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic iomt --from-beginning"
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -147,7 +147,7 @@ services:
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
     command: >
-      /bin/bash -c "sleep 10 && echo 'Starting to execute..' &&
+      /bin/bash -c "echo 'Starting to execute..' &&
       spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0 stream_miner.py"
     networks:
       - kafka_network
