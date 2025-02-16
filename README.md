@@ -83,23 +83,6 @@ By integrating these technologies, stakeholders can monitor data flows, identify
 ...
 Clone the Repository and build the application:
 ```shell
-git clone https://github.com/UsmanIKHJLS/OS_SM-Project.git && cd OS_SM-Project
+git clone git@github.com:yasabh/retimuad.git && cd OS_SM-Project
 docker compose up
 ```
-2. Update the config inside [kafka_producer.py](scripts/kafka_producer.py). Then run,
-```shell
-python3 kafka_producer.py
-```
-3. Update the config inside [kafka_influxdb_consumer.py](scripts/kafka_influxdb_consumer.py). Fist, open http://localhost:8086/. Then run,
-```shell
-python3 kafka_influxdb_consumer.py
-```
-4. 
-
-## Contributors
-- **Team ... **
-
----
-
-## License
-This project is licensed under the [MIT License](LICENSE).
